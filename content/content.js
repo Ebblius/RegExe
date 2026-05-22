@@ -78,7 +78,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     bar.setAttribute("role", "search");
     bar.setAttribute("aria-label", "RegExe find bar");
 
-    bar.innerHTML = `
+    const SAFE_HTML = String.raw`
       <span class="regexe-search-icon" aria-hidden="true">${ICONS.search}</span>
 
       <div class="regexe-input-wrapper">
@@ -160,6 +160,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
       <div class="regexe-toast" id="regexe-toast" aria-live="polite"></div>
     `;
+
+    bar.innerHTML = SAFE_HTML;
 
     document.documentElement.appendChild(bar);
     return bar;
