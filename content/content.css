@@ -659,7 +659,7 @@ mark.regexe-highlight {
 
 mark.regexe-highlight.regexe-highlight-active {
   background: var(--regexe-highlight-active) !important;
-  color: #fff !important;
+  color: var(--regexe-highlight-text-active, #fff) !important;
   text-decoration: underline;
   box-shadow: 0 0 0 2px rgba(251, 146, 60, 0.9),
   0 0 12px rgba(251, 146, 60, 0.3) !important;

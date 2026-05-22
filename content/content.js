@@ -693,10 +693,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         rect.right <= window.innerWidth;
 
       if (!inView) {
-        const el = range.startContainer.parentElement;
-        if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
+        const absoluteTop = window.scrollY + rect.top;
+        const absoluteLeft = window.scrollX + rect.left;
+        
+        window.scrollTo({
+          top: absoluteTop - window.innerHeight / 2,
+          left: absoluteLeft - window.innerWidth / 2,
+          behavior: "smooth"
+        });
       }
     } catch (_) {}
   }
@@ -872,13 +876,22 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     const outlineColor = hexToRgba(highlightColor, 0.8);
 
     // Much darker active state — darken by -80 instead of -40, full opacity
-    const activeColor = hexToRgba(darkenHex(highlightColor, -80), 0.92);
-    const activeOutline = hexToRgba(darkenHex(highlightColor, -80), 1.0);
+    const activeHex = darkenHex(highlightColor, -80);
+    const activeColor = hexToRgba(activeHex, 0.92);
+    const activeOutline = hexToRgba(activeHex, 1.0);
     const activeGlow = hexToRgba(darkenHex(highlightColor, -60), 0.5);
+
+    // Calculate YIQ contrast for text color
+    const ar = parseInt(activeHex.slice(1, 3), 16);
+    const ag = parseInt(activeHex.slice(3, 5), 16);
+    const ab = parseInt(activeHex.slice(5, 7), 16);
+    const ayiq = (ar * 299 + ag * 587 + ab * 114) / 1000;
+    const activeTextColor = ayiq >= 128 ? "#000000" : "#ffffff";
 
     document.documentElement.style.setProperty("--regexe-highlight", bgColor);
     document.documentElement.style.setProperty("--regexe-highlight-active", activeColor);
     document.documentElement.style.setProperty("--regexe-highlight-outline", outlineColor);
+    document.documentElement.style.setProperty("--regexe-highlight-text-active", activeTextColor);
 
     if (hasHighlightAPI) {
       if (!highlightStyleEl) {
@@ -893,7 +906,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
       }
       ::highlight(regexe-active) {
         background-color: ${activeColor};
-        color: #fff;
+        color: ${activeTextColor};
         text-decoration: underline;
         text-decoration-color: ${activeOutline};
         text-shadow: 0 0 6px ${activeGlow};
