@@ -1,0 +1,56 @@
+{
+  "manifest_version": 2,
+  "name": "RegExe",
+  "version": "1.0.0",
+  "description": "Regex-powered find-in-page for Zen Browser",
+  "author": "unsubble",
+
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+
+  "permissions": [
+    "storage"
+  ],
+
+  "background": {
+    "scripts": ["background/background.js"],
+    "persistent": false
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content/content.js"],
+      "css": ["content/content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "commands": {
+    "toggle-find-bar": {
+      "suggested_key": {
+        "default": "Ctrl+Alt+F",
+        "mac": "Command+Alt+F"
+      },
+      "description": "Toggle RegExe find bar"
+    }
+  },
+
+  "browser_action": {
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png"
+    },
+    "default_title": "Toggle RegExe Find Bar"
+  },
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "regexe@unsubble",
+      "strict_min_version": "109.0"
+    }
+  }
+}
