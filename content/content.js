@@ -86,7 +86,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
           type="text"
           class="regexe-input"
           id="regexe-search-input"
-          placeholder="Find in page..."
+          placeholder="Basic regex search (auto 'gi')..."
           autocomplete="off"
           spellcheck="false"
           aria-label="Search pattern"
@@ -96,9 +96,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
       <div class="regexe-separator" aria-hidden="true"></div>
 
-      <label class="regexe-toggle" title="Toggle regex mode (JavaScript RegExp)">
+      <label class="regexe-toggle" title="JS Regex mode — use /pattern/flags syntax">
         <input type="checkbox" class="regexe-checkbox" id="regexe-regex-toggle" />
-        <span class="regexe-toggle-label">Regex</span>
+        <span class="regexe-toggle-label">JS Regex</span>
       </label>
 
       <div class="regexe-separator" aria-hidden="true"></div>
@@ -236,9 +236,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
       } catch (_) {}
 
       if (isRegexMode) {
-        inputEl.placeholder = "/pattern/flags  or  pattern";
+        inputEl.placeholder = "/pattern/flags (Strict JS Regex)";
       } else {
-        inputEl.placeholder = "Find in page...";
+        inputEl.placeholder = "Basic regex search (auto 'gi')...";
       }
 
       performSearch();
@@ -349,8 +349,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
   }
 
   // ── Search Engine ──────────────────────────────────────────
-  function performSearch() {
+  let currentSearchId = 0;
+
+  async function performSearch() {
     const query = inputEl.value;
+    const searchId = ++currentSearchId;
+
     clearHighlights();
     clearError();
     matches = [];
@@ -375,17 +379,22 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     }
 
     inputEl.classList.remove("regexe-input-error");
+    counterEl.textContent = "Searching...";
+    counterEl.classList.remove("regexe-no-results");
 
-    // Walk the DOM and find matches
-    matches = findMatches(regex);
+    // Walk the DOM and find matches asynchronously
+    matches = await findMatchesAsync(regex, searchId);
+
+    if (searchId !== currentSearchId) return;
 
     if (matches.length === 0) {
       counterEl.textContent = "0 results";
       counterEl.classList.add("regexe-no-results");
     } else {
-      counterEl.classList.remove("regexe-no-results");
       activeIndex = 0;
-      applyHighlights();
+      await applyHighlightsAsync(searchId);
+      if (searchId !== currentSearchId) return;
+
       updateCounter();
       scrollToActive();
     }
@@ -393,19 +402,20 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
   function buildRegex(query) {
     if (!isRegexMode) {
-      // Literal mode: escape special regex chars, case-insensitive
-      const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      return new RegExp(escaped, "gi");
+      return new RegExp(query, "gi");
     }
 
-    // Regex mode: support /pattern/flags syntax or plain pattern
+    // Strict JS Regex mode — parse /pattern/flags syntax
     const slashMatch = query.match(/^\/(.+)\/([gimsuy]*)$/);
     if (slashMatch) {
-      return new RegExp(slashMatch[1], slashMatch[2] || "g");
+      const flags = slashMatch[2];
+      // Always ensure 'g' flag is present to prevent infinite exec() loop
+      const finalFlags = flags.includes("g") ? flags : flags + "g";
+      return new RegExp(slashMatch[1], finalFlags);
     }
 
-    // Plain regex without slashes — apply 'gi' by default
-    return new RegExp(query, "gi");
+    // No slashes — treat as bare pattern, apply 'g' at minimum
+    return new RegExp(query, "g");
   }
 
   // ── DOM Traversal ──────────────────────────────────────────
@@ -414,82 +424,103 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     "EMBED", "TEMPLATE", "SVG", "MATH",
   ]);
 
-  function findMatches(regex) {
-    const results = [];
-    const walker = document.createTreeWalker(
-      document.body,
-      NodeFilter.SHOW_TEXT,
-      {
-        acceptNode(node) {
-          const parent = node.parentElement;
-          if (!parent) return NodeFilter.FILTER_REJECT;
+  async function findMatchesAsync(regex, searchId) {
+    return new Promise((resolve) => {
+      const results = [];
+      const walker = document.createTreeWalker(
+        document.body,
+        NodeFilter.SHOW_TEXT,
+        {
+          acceptNode(node) {
+            const parent = node.parentElement;
+            if (!parent) return NodeFilter.FILTER_REJECT;
 
-          // Skip our own findbar
-          if (parent.closest("#regexe-findbar")) return NodeFilter.FILTER_REJECT;
+            // Skip our own findbar
+            if (parent.closest("#regexe-findbar")) return NodeFilter.FILTER_REJECT;
 
-          // Skip invisible / non-content tags
-          if (SKIP_TAGS.has(parent.tagName)) return NodeFilter.FILTER_REJECT;
+            // Skip invisible / non-content tags
+            if (SKIP_TAGS.has(parent.tagName)) return NodeFilter.FILTER_REJECT;
 
-          // Skip hidden elements
-          if (parent.offsetParent === null && parent.tagName !== "BODY") {
-            return NodeFilter.FILTER_REJECT;
+            // Skip hidden elements
+            if (parent.offsetParent === null && parent.tagName !== "BODY") {
+              return NodeFilter.FILTER_REJECT;
+            }
+
+            if (!node.textContent || node.textContent.length === 0) {
+              return NodeFilter.FILTER_REJECT;
+            }
+
+            return NodeFilter.FILTER_ACCEPT;
+          },
+        }
+      );
+
+      const textNodes = [];
+      let textNode;
+      while ((textNode = walker.nextNode())) {
+        textNodes.push(textNode);
+      }
+
+      let i = 0;
+
+      function processChunk() {
+        if (searchId !== currentSearchId) return resolve([]);
+        const startTime = performance.now();
+        let processed = 0;
+
+        while (i < textNodes.length) {
+          const node = textNodes[i];
+          const text = node.textContent;
+          regex.lastIndex = 0;
+          let match;
+
+          while ((match = regex.exec(text)) !== null) {
+            if (match[0].length === 0) {
+              regex.lastIndex++;
+              continue;
+            }
+
+            try {
+              const range = document.createRange();
+              range.setStart(node, match.index);
+              range.setEnd(node, match.index + match[0].length);
+              results.push(range);
+            } catch (_) {}
+
+            // Safety: cap at 10,000 matches
+            if (results.length >= 10000) {
+              return resolve(results);
+            }
           }
 
-          if (!node.textContent || node.textContent.length === 0) {
-            return NodeFilter.FILTER_REJECT;
+          i++;
+          processed++;
+          
+          if (processed > 50 || performance.now() - startTime > 15) {
+            break;
           }
-
-          return NodeFilter.FILTER_ACCEPT;
-        },
-      }
-    );
-
-    let textNode;
-    // Reset regex lastIndex for global searches
-    regex.lastIndex = 0;
-
-    // Collect all text nodes first
-    const textNodes = [];
-    while ((textNode = walker.nextNode())) {
-      textNodes.push(textNode);
-    }
-
-    // Search within each text node
-    for (const node of textNodes) {
-      const text = node.textContent;
-      regex.lastIndex = 0;
-      let match;
-
-      while ((match = regex.exec(text)) !== null) {
-        if (match[0].length === 0) {
-          regex.lastIndex++;
-          continue; // prevent infinite loops on zero-length matches
         }
 
-        try {
-          const range = document.createRange();
-          range.setStart(node, match.index);
-          range.setEnd(node, match.index + match[0].length);
-          results.push(range);
-        } catch (_) {
-          // Range may fail on certain edge cases
+        if (i < textNodes.length) {
+          if (counterEl) counterEl.textContent = `Found ${results.length}...`;
+          setTimeout(processChunk, 0);
+        } else {
+          resolve(results);
         }
-
-        // Safety: cap at 10,000 matches
-        if (results.length >= 10000) return results;
       }
-    }
 
-    return results;
+      processChunk();
+    });
   }
 
   // ── Highlighting ───────────────────────────────────────────
 
-  function applyHighlights() {
+  async function applyHighlightsAsync(searchId) {
     if (hasHighlightAPI) {
       applyHighlightsCSS();
+      return Promise.resolve();
     } else {
-      applyHighlightsDOM();
+      return applyHighlightsDOMAsync(searchId);
     }
   }
 
@@ -521,50 +552,67 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
   }
 
   // ---------- DOM Fallback (mark elements) ----------
-  function applyHighlightsDOM() {
-    // We need to wrap matches in <mark> elements, processing from last to first
-    // to avoid invalidating earlier ranges
-    const sortedMatches = [...matches].sort((a, b) => {
-      const cmp = a.compareBoundaryPoints(Range.START_TO_START, b);
-      return cmp;
-    });
+  async function applyHighlightsDOMAsync(searchId) {
+    return new Promise((resolve) => {
+      // We need to wrap matches in <mark> elements, processing from last to first
+      // to avoid invalidating earlier ranges
+      const sortedMatches = [...matches].sort((a, b) => {
+        return a.compareBoundaryPoints(Range.START_TO_START, b);
+      });
 
-    // Clear and re-collect: wrapping changes the DOM, so we store position info
-    const matchData = sortedMatches.map((range) => ({
-      node: range.startContainer,
-      start: range.startOffset,
-      end: range.endOffset,
-      text: range.toString(),
-    }));
+      // Clear and re-collect: wrapping changes the DOM, so we store position info
+      const matchData = sortedMatches.map((range) => ({
+        node: range.startContainer,
+        start: range.startOffset,
+        end: range.endOffset,
+      }));
 
-    // Process in reverse to preserve offsets
-    const newRanges = [];
-    for (let i = matchData.length - 1; i >= 0; i--) {
-      const { node, start, end } = matchData[i];
-      try {
-        if (node.nodeType !== Node.TEXT_NODE) continue;
-        if (start >= node.textContent.length) continue;
+      const newRanges = [];
+      let i = matchData.length - 1;
 
-        const range = document.createRange();
-        range.setStart(node, start);
-        range.setEnd(node, Math.min(end, node.textContent.length));
+      function processChunk() {
+        if (searchId !== currentSearchId) return resolve();
+        const startTime = performance.now();
+        let processed = 0;
 
-        const mark = document.createElement("mark");
-        mark.className = "regexe-highlight";
-        range.surroundContents(mark);
+        while (i >= 0) {
+          const { node, start, end } = matchData[i];
+          try {
+            if (node.nodeType === Node.TEXT_NODE && start < node.textContent.length) {
+              const range = document.createRange();
+              range.setStart(node, start);
+              range.setEnd(node, Math.min(end, node.textContent.length));
 
-        const newRange = document.createRange();
-        newRange.selectNodeContents(mark);
-        newRanges.unshift(newRange);
-      } catch (_) {
-        // surroundContents can fail if range crosses element boundaries
+              const mark = document.createElement("mark");
+              mark.className = "regexe-highlight";
+              range.surroundContents(mark);
+
+              const newRange = document.createRange();
+              newRange.selectNodeContents(mark);
+              newRanges.unshift(newRange);
+            }
+          } catch (_) {}
+
+          i--;
+          processed++;
+          
+          if (processed > 50 || performance.now() - startTime > 15) {
+            break;
+          }
+        }
+
+        if (i >= 0) {
+          if (counterEl) counterEl.textContent = `Highlighting...`;
+          setTimeout(processChunk, 0);
+        } else {
+          matches = newRanges;
+          updateActiveHighlightDOM();
+          resolve();
+        }
       }
-    }
 
-    matches = newRanges;
-
-    // Set active
-    updateActiveHighlightDOM();
+      processChunk();
+    });
   }
 
   function updateActiveHighlightDOM() {
@@ -762,6 +810,19 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     }
   });
 
+  // Ctrl+F override
+  document.addEventListener("keydown", (e) => {
+    const isMac = navigator.platform.toUpperCase().includes("MAC");
+    const ctrlOrCmd = isMac ? e.metaKey : e.ctrlKey;
+
+    if (ctrlOrCmd && e.key.toLowerCase() === "f") {
+      e.preventDefault();
+      e.stopPropagation();
+
+      openFindBar();
+    }
+  }, true);
+
   // ── Color Management ───────────────────────────────────────
   function hexToRgba(hex, alpha) {
     const r = parseInt(hex.slice(1, 3), 16);
@@ -809,16 +870,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
   function applyHighlightColor() {
     const bgColor = hexToRgba(highlightColor, 0.45);
     const outlineColor = hexToRgba(highlightColor, 0.8);
-    const activeColor = hexToRgba(darkenHex(highlightColor, -40), 0.75);
-    const activeOutline = hexToRgba(darkenHex(highlightColor, -40), 0.9);
-    const activeGlow = hexToRgba(darkenHex(highlightColor, -40), 0.3);
 
-    // Update CSS custom properties on :root
+    // Much darker active state — darken by -80 instead of -40, full opacity
+    const activeColor = hexToRgba(darkenHex(highlightColor, -80), 0.92);
+    const activeOutline = hexToRgba(darkenHex(highlightColor, -80), 1.0);
+    const activeGlow = hexToRgba(darkenHex(highlightColor, -60), 0.5);
+
     document.documentElement.style.setProperty("--regexe-highlight", bgColor);
     document.documentElement.style.setProperty("--regexe-highlight-active", activeColor);
     document.documentElement.style.setProperty("--regexe-highlight-outline", outlineColor);
 
-    // Update dynamic highlight style for CSS Highlight API
     if (hasHighlightAPI) {
       if (!highlightStyleEl) {
         highlightStyleEl = document.createElement("style");
@@ -826,14 +887,17 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         document.documentElement.appendChild(highlightStyleEl);
       }
       highlightStyleEl.textContent = `
-        ::highlight(regexe-highlight) {
-          background-color: ${bgColor};
-          color: inherit;
-        }
-        ::highlight(regexe-active) {
-          background-color: ${activeColor};
-          color: inherit;
-        }
+      ::highlight(regexe-highlight) {
+        background-color: ${bgColor};
+        color: inherit;
+      }
+      ::highlight(regexe-active) {
+        background-color: ${activeColor};
+        color: #fff;
+        text-decoration: underline;
+        text-decoration-color: ${activeOutline};
+        text-shadow: 0 0 6px ${activeGlow};
+      }
       `;
     }
   }
