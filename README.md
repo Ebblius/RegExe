@@ -4,7 +4,9 @@ A browser extension for Zen Browser (Firefox-based) that provides regex-powered 
 
 ## Features
 
-- **Regex search** -- toggle a checkbox to parse input as JavaScript RegExp, supporting `/pattern/flags` syntax or plain patterns with automatic `gi` flags.
+- **Dual Regex Modes**:
+  - **Basic Regex (Default)** -- search behaves as a regex with automatic global and case-insensitive (`gi`) flags.
+  - **Strict JS Regex** -- toggle the checkbox to strictly evaluate your input as a Javascript regular expression (e.g. `/pattern/flags`).
 - **Match highlighting** -- all matches are highlighted on the page with a distinct color for the active match. Uses the CSS Custom Highlight API where supported, with a DOM-based fallback.
 - **Match navigation** -- step through matches with previous/next buttons or Enter/Shift+Enter. A counter displays the current position (e.g. "3 / 17").
 - **Highlight color picker** -- choose from 8 preset colors or pick a custom color. The selection persists across sessions.
@@ -30,12 +32,14 @@ Package the extension as an `.xpi` file and install it through `about:addons`, o
 
 Press `Ctrl+Shift+F` to open the find bar. Alternatively, click the RegExe icon in the browser toolbar.
 
-Type a search query to find and highlight matches on the page. Check the "Regex" checkbox to switch to regex mode. When regex mode is enabled, the input field accepts JavaScript regular expression syntax:
+Type a search query to find and highlight matches on the page. By default, the search operates in **Basic Regex mode** where any pattern you type (e.g., `\w+`) is evaluated with automatic global and case-insensitive flags.
+
+Check the **"JS Regex"** checkbox to switch to **Strict mode**. In this mode, you must explicitly define your regex flags using JavaScript syntax:
 
 ```
-\d{4}          matches 4-digit numbers
-(foo|bar)      matches "foo" or "bar"
-/hello/i       matches "hello" case-insensitively
+/hello/gi      matches "hello" globally and case-insensitively
+/hello/        matches only the first "hello" (case-sensitive)
+\d{4}          matches the first 4-digit number it finds (case-sensitive)
 ```
 
 Press `Escape` to close the find bar and clear all highlights.

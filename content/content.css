@@ -20,7 +20,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
  *  Premium glassmorphism find bar + match highlighting
  *  ============================================================ */
 
-/* ---------- CSS Custom Properties ---------- */
+/* ---------- CSS Custom Properties (Dark Theme — Default) ---------- */
 :root {
   --regexe-bg: rgba(22, 22, 30, 0.82);
   --regexe-bg-solid: #16161e;
@@ -43,6 +43,56 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
   --regexe-font: 'Segoe UI', system-ui, -apple-system, sans-serif;
   --regexe-font-mono: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
   --regexe-transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Interactive state colors */
+  --regexe-hover-bg: rgba(255, 255, 255, 0.08);
+  --regexe-active-bg: rgba(255, 255, 255, 0.12);
+  --regexe-subtle-bg: rgba(255, 255, 255, 0.04);
+  --regexe-input-bg: rgba(255, 255, 255, 0.06);
+  --regexe-swatch-border: rgba(255, 255, 255, 0.2);
+  --regexe-swatch-glow: rgba(255, 255, 255, 0.15);
+  --regexe-preset-border-hover: rgba(255, 255, 255, 0.4);
+  --regexe-icon-bg: rgba(255, 255, 255, 0.05);
+  --regexe-popup-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
+  --regexe-toast-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  --regexe-toast-success: #34d399;
+  --regexe-toast-success-border: rgba(52, 211, 153, 0.25);
+  --regexe-toast-error-border: rgba(248, 113, 113, 0.25);
+  --regexe-active-match-shadow: 0 0 0 2px rgba(251, 146, 60, 0.9), 0 0 12px rgba(251, 146, 60, 0.3);
+}
+
+/* ---------- Light Theme ---------- */
+@media (prefers-color-scheme: light) {
+  :root {
+    --regexe-bg: rgba(255, 255, 255, 0.88);
+    --regexe-bg-solid: #ffffff;
+    --regexe-border: rgba(0, 0, 0, 0.1);
+    --regexe-border-focus: rgba(109, 40, 217, 0.45);
+    --regexe-accent: #7c3aed;
+    --regexe-accent-glow: rgba(124, 58, 237, 0.2);
+    --regexe-accent-hover: #6d28d9;
+    --regexe-text: #1e293b;
+    --regexe-text-muted: #475569;
+    --regexe-text-dim: #94a3b8;
+    --regexe-error: #dc2626;
+    --regexe-error-bg: rgba(220, 38, 38, 0.06);
+    --regexe-shadow: 0 -4px 24px rgba(0, 0, 0, 0.1), 0 -1px 6px rgba(0, 0, 0, 0.06);
+
+    --regexe-hover-bg: rgba(0, 0, 0, 0.05);
+    --regexe-active-bg: rgba(0, 0, 0, 0.08);
+    --regexe-subtle-bg: rgba(0, 0, 0, 0.02);
+    --regexe-input-bg: rgba(0, 0, 0, 0.04);
+    --regexe-swatch-border: rgba(0, 0, 0, 0.15);
+    --regexe-swatch-glow: rgba(0, 0, 0, 0.08);
+    --regexe-preset-border-hover: rgba(0, 0, 0, 0.3);
+    --regexe-icon-bg: rgba(0, 0, 0, 0.04);
+    --regexe-popup-shadow: 0 12px 40px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+    --regexe-toast-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    --regexe-toast-success: #16a34a;
+    --regexe-toast-success-border: rgba(22, 163, 74, 0.25);
+    --regexe-toast-error-border: rgba(220, 38, 38, 0.2);
+    --regexe-active-match-shadow: 0 0 0 2px rgba(234, 88, 12, 0.7), 0 0 12px rgba(234, 88, 12, 0.2);
+  }
 }
 
 /* ---------- Find Bar Container ---------- */
@@ -127,7 +177,7 @@ all: unset;
 width: 260px;
 height: 30px;
 padding: 0 8px;
-background: rgba(255, 255, 255, 0.04);
+background: var(--regexe-subtle-bg);
 border: 1px solid var(--regexe-border);
 border-radius: var(--regexe-radius-sm);
 color: var(--regexe-text);
@@ -147,7 +197,7 @@ opacity: 0.7;
 }
 
 #regexe-findbar .regexe-input:focus {
-background: rgba(255, 255, 255, 0.06);
+background: var(--regexe-input-bg);
 border-color: var(--regexe-border-focus);
 box-shadow: 0 0 0 3px var(--regexe-accent-glow);
 }
@@ -175,7 +225,7 @@ left: 0;
 right: 0;
 padding: 6px 10px;
 background: var(--regexe-bg-solid);
-border: 1px solid rgba(248, 113, 113, 0.25);
+border: 1px solid var(--regexe-toast-error-border);
 border-radius: var(--regexe-radius-sm);
 color: var(--regexe-error);
 font-size: 11px;
@@ -184,7 +234,7 @@ line-height: 1.4;
 white-space: nowrap;
 overflow: hidden;
 text-overflow: ellipsis;
-box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+box-shadow: var(--regexe-toast-shadow);
 opacity: 0;
 transform: translateY(4px);
 transition: opacity 0.2s ease, transform 0.2s ease;
@@ -220,7 +270,7 @@ flex-shrink: 0;
 }
 
 #regexe-findbar .regexe-toggle:hover {
-background: rgba(255, 255, 255, 0.06);
+background: var(--regexe-input-bg);
 }
 
 #regexe-findbar .regexe-checkbox {
@@ -298,7 +348,7 @@ transition: background var(--regexe-transition);
 }
 
 #regexe-findbar .regexe-color-btn:hover {
-background: rgba(255, 255, 255, 0.06);
+background: var(--regexe-input-bg);
 }
 
 #regexe-findbar .regexe-color-btn:active {
@@ -310,14 +360,14 @@ display: block;
 width: 14px;
 height: 14px;
 border-radius: 50%;
-border: 1.5px solid rgba(255, 255, 255, 0.2);
+border: 1.5px solid var(--regexe-swatch-border);
 box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2) inset;
 transition: box-shadow var(--regexe-transition), transform 0.15s ease;
 }
 
 #regexe-findbar .regexe-color-btn:hover .regexe-color-swatch {
 transform: scale(1.1);
-box-shadow: 0 0 6px rgba(255, 255, 255, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.2) inset;
+box-shadow: 0 0 6px var(--regexe-swatch-glow), 0 0 0 1px rgba(0, 0, 0, 0.2) inset;
 }
 
 #regexe-findbar .regexe-color-icon {
@@ -346,7 +396,7 @@ padding: 10px;
 background: var(--regexe-bg-solid);
 border: 1px solid var(--regexe-border);
 border-radius: var(--regexe-radius-sm);
-box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5), 0 -2px 8px rgba(0, 0, 0, 0.3);
+box-shadow: var(--regexe-popup-shadow);
 backdrop-filter: blur(16px);
 opacity: 0;
 transform: translateY(6px) scale(0.95);
@@ -382,7 +432,7 @@ box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 
 #regexe-findbar .regexe-color-preset:hover {
 transform: scale(1.18);
-border-color: rgba(255, 255, 255, 0.4);
+border-color: var(--regexe-preset-border-hover);
 box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
@@ -475,13 +525,13 @@ flex-shrink: 0;
 }
 
 #regexe-findbar .regexe-nav-btn:hover {
-background: rgba(255, 255, 255, 0.08);
+background: var(--regexe-hover-bg);
 color: var(--regexe-text);
 }
 
 #regexe-findbar .regexe-nav-btn:active {
 transform: scale(0.9);
-background: rgba(255, 255, 255, 0.12);
+background: var(--regexe-active-bg);
 }
 
 #regexe-findbar .regexe-nav-btn:focus-visible {
@@ -547,7 +597,7 @@ padding: 4px;
 background: var(--regexe-bg-solid);
 border: 1px solid var(--regexe-border);
 border-radius: var(--regexe-radius-sm);
-box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5), 0 -2px 8px rgba(0, 0, 0, 0.3);
+box-shadow: var(--regexe-popup-shadow);
 backdrop-filter: blur(16px);
 opacity: 0;
 transform: translateY(6px) scale(0.95);
@@ -579,12 +629,12 @@ box-sizing: border-box;
 }
 
 #regexe-findbar .regexe-copy-option:hover {
-background: rgba(255, 255, 255, 0.08);
+background: var(--regexe-hover-bg);
 color: var(--regexe-text);
 }
 
 #regexe-findbar .regexe-copy-option:active {
-background: rgba(255, 255, 255, 0.12);
+background: var(--regexe-active-bg);
 }
 
 #regexe-findbar .regexe-copy-option:focus-visible {
@@ -599,7 +649,7 @@ justify-content: center;
 width: 22px;
 height: 22px;
 border-radius: 4px;
-background: rgba(255, 255, 255, 0.05);
+background: var(--regexe-icon-bg);
 font-family: var(--regexe-font-mono);
 font-size: 10px;
 font-weight: 600;
@@ -621,14 +671,14 @@ top: unset;
 right: 0;
 padding: 6px 14px;
 background: var(--regexe-bg-solid);
-border: 1px solid rgba(52, 211, 153, 0.25);
+border: 1px solid var(--regexe-toast-success-border);
 border-radius: var(--regexe-radius-sm);
-color: #34d399;
+color: var(--regexe-toast-success);
 font-family: var(--regexe-font);
 font-size: 11.5px;
 font-weight: 500;
 white-space: nowrap;
-box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+box-shadow: var(--regexe-toast-shadow);
 opacity: 0;
 transform: translateY(4px);
 transition: opacity 0.2s ease, transform 0.2s ease;
@@ -643,7 +693,7 @@ transform: translateY(0);
 
 #regexe-findbar .regexe-toast.regexe-toast-error {
 color: var(--regexe-error);
-border-color: rgba(248, 113, 113, 0.25);
+border-color: var(--regexe-toast-error-border);
 }
 
 /* ---------- Match Highlights (injected into page) ---------- */
@@ -661,7 +711,6 @@ mark.regexe-highlight.regexe-highlight-active {
   background: var(--regexe-highlight-active) !important;
   color: var(--regexe-highlight-text-active, #fff) !important;
   text-decoration: underline;
-  box-shadow: 0 0 0 2px rgba(251, 146, 60, 0.9),
-  0 0 12px rgba(251, 146, 60, 0.3) !important;
+  box-shadow: var(--regexe-active-match-shadow) !important;
   outline: none !important;
 }
