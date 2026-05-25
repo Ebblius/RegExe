@@ -322,6 +322,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
   // ── Open / Close ───────────────────────────────────────────
   function openFindBar() {
+    // If the document isn't ready yet (running at document_start),
+    // defer until DOMContentLoaded
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", () => openFindBar(), { once: true });
+      return;
+    }
+
     if (!findbar) init();
     isOpen = true;
     findbar.classList.add("regexe-visible");
