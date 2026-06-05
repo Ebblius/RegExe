@@ -329,11 +329,26 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
       return;
     }
 
+    // Grab selected text before creating/focusing the findbar
+    const selection = window.getSelection();
+    const selectedText = selection ? selection.toString().trim() : "";
+
     if (!findbar) init();
     isOpen = true;
     findbar.classList.add("regexe-visible");
-    inputEl.focus();
-    inputEl.select();
+
+    // Pre-fill with selected text if available
+    if (selectedText && selectedText.length > 0 && selectedText.length < 500) {
+      inputEl.value = selectedText;
+      inputEl.focus();
+      // Move cursor to end
+      inputEl.setSelectionRange(selectedText.length, selectedText.length);
+      // Trigger search immediately
+      performSearch();
+    } else {
+      inputEl.focus();
+      inputEl.select();
+    }
   }
 
   function closeFindBar() {
